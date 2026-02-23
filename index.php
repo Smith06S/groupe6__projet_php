@@ -1,2 +1,2 @@
 <?php
-require_once __DIR__ . "/Home.php";
+require_once __DIR__ . '/route/index.php';

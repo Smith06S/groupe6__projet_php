@@ -1,5 +1,5 @@
 <?php
-require_once __DIR__ . "/db.php";
+require_once dirname(__DIR__, 2) . "/db.php";
 
 $result = $mysqli->query("SELECT * FROM article ORDER BY date_publication DESC");
 ?>
