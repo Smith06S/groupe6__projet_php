@@ -1,31 +1,62 @@
 <?php
-$mysqli = new mysqli("localhost", "root", "", "php_exam_db");
+require_once __DIR__ . "/auth.php";
+require_once __DIR__ . "/db.php";
 
-if ($mysqli->connect_error) {
-    die("Erreur de connexion : " . $mysqli->connect_error);
+start_session();
+
+if (!empty($_SESSION['user_id'])) {
+    header("Location: /php_exam/groupe6__projet_php/");
+    exit;
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
-    $username = $_POST['username'];
-    $mail = $_POST['mail'];
+    $username = trim($_POST['username'] ?? '');
+    $mail = trim($_POST['mail'] ?? '');
+    $passwordRaw = $_POST['password'] ?? '';
     $password = password_hash($_POST['password'], PASSWORD_BCRYPT);
 
-    $stmt = $mysqli->prepare("INSERT INTO user (username, mail, mdp) VALUES (?, ?, ?)");
-
-    if ($stmt === false) {
-        $message = "Erreur SQL (prepare) : " . $mysqli->error;
+    if ($username === '' || $mail === '' || $passwordRaw === '') {
+        $message = "Merci de remplir tous les champs.";
     } else {
-        $stmt->bind_param("sss", $username, $mail, $password);
+        $stmtExists = $mysqli->prepare("SELECT id FROM user WHERE username = ? OR mail = ? LIMIT 1");
 
-        if ($stmt->execute()) {
-            header("Location: Home.php");
-            exit;
+        if ($stmtExists === false) {
+            $message = "Erreur SQL (prepare check) : " . $mysqli->error;
         } else {
-            $message = "Erreur : " . $stmt->error;
-        }
+            $stmtExists->bind_param("ss", $username, $mail);
+            $stmtExists->execute();
+            $stmtExists->store_result();
 
-        $stmt->close();
+            if ($stmtExists->num_rows > 0) {
+                $message = "Username ou email déjà utilisé.";
+            } else {
+                $stmt = $mysqli->prepare("INSERT INTO user (username, mail, mdp) VALUES (?, ?, ?)");
+
+                if ($stmt === false) {
+                    $message = "Erreur SQL (prepare insert) : " . $mysqli->error;
+                } else {
+                    $stmt->bind_param("sss", $username, $mail, $password);
+
+                    if ($stmt->execute()) {
+                        $_SESSION['user_id'] = $stmt->insert_id;
+                        $_SESSION['username'] = $username;
+                        header("Location: /php_exam/groupe6__projet_php/");
+                        exit;
+                    } else {
+                        if ($stmt->errno === 1062) {
+                            $message = "Username ou email déjà utilisé.";
+                        } else {
+                            $message = "Erreur : " . $stmt->error;
+                        }
+                    }
+
+                    $stmt->close();
+                }
+            }
+
+            $stmtExists->close();
+        }
     }
 }
 ?>
@@ -37,7 +68,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <h1>Créer un utilisateur</h1>
 
 <?php if (!empty($message)) : ?>
-    <p><strong><?php echo $message; ?></strong></p>
+    <p><strong><?php echo htmlspecialchars($message); ?></strong></p>
 <?php endif; ?>
 
 <form method="POST">
@@ -46,7 +77,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <input type="text" name="username" required><br><br>
 
     <label>Mail :</label><br>
-    <input type="mail" name="mail" required><br><br>
+    <input type="email" name="mail" required><br><br>
 
     <label>Password :</label><br>
     <input type="password" name="password" required><br><br>

@@ -1,9 +1,8 @@
 <?php
-$mysqli = new mysqli("localhost", "root", "", "php_exam_db");
+require_once __DIR__ . "/auth.php";
+require_once __DIR__ . "/db.php";
 
-if ($mysqli->connect_error) {
-    die("Erreur de connexion : " . $mysqli->connect_error);
-}
+start_session();
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
@@ -25,7 +24,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $stmt->fetch();
 
                 if (password_verify($password, $hashedPassword)) {
-                    header("Location: Home.php");
+                    $_SESSION['user_id'] = $userId;
+                    $_SESSION['username'] = $username;
+                    header("Location: /php_exam/groupe6__projet_php/");
                     exit;
                 } else {
                     $message = "Nom d'utilisateur ou mot de passe incorrect.";

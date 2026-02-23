@@ -1,9 +1,5 @@
 <?php
-$mysqli = new mysqli("localhost", "root", "", "php_exam_db");
-
-if ($mysqli->connect_error) {
-    die("Erreur de connexion : " . $mysqli->connect_error);
-}
+require_once __DIR__ . "/db.php";
 
 $result = $mysqli->query("SELECT * FROM article ORDER BY date_publication DESC");
 ?>
@@ -23,6 +19,7 @@ if ($result && $result->num_rows > 0) {
         echo "<p>Prix : " . htmlspecialchars($article['prix']) . "</p>";
         echo "<p>Date de publication : " . htmlspecialchars($article['date_publication']) . "</p>";
         echo "<p>Image URL : " . htmlspecialchars($article['image_url']) . "</p>";
+        echo "<p><a href=\"Detail.php?id=" . intval($article['id']) . "\">Voir le detail</a></p>";
         echo "<hr>";
         echo "</div>";
     }
