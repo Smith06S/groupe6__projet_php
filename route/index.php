@@ -1,86 +1,52 @@
 <?php
+session_start();
 
-// 1. Démarrage de la session (essentiel pour la connexion)
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
+$url = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
+$base_path = '/php_exam/groupe6__projet_php';
+
+$path = str_replace($base_path, '', $url);
+
+if ($path === '') {
+    $path = '/';
 }
 
-// 2. Inclusion de la base de données et des modèles/contrôleurs
-// (A adapter selon tes noms de fichiers réels)
-require_once __DIR__ . '/../db/Database.php';
-require_once __DIR__ . '/../Controleur/authControleur.php';
-require_once __DIR__ . '/../Controleur/productControleur.php';
-require_once __DIR__ . '/../Controleur/cartControleur.php';
-require_once __DIR__ . '/../Controleur/accountControleur.php';
-
-// 3. Récupération de l'action demandée (par défaut 'home')
-$action = $_GET['action'] ?? 'home';
-
-// 4. Le ROUTEUR (Aiguillage MVC par fonctions)
-switch ($action) {
-    
-    // --- AUTHENTIFICATION ---
-    case 'login':
-        auth_login(); // A implémenter dans ../Controleur/authControleur.php
+switch ($path) {
+    case '/':
+    case '/home':
+        require_once 'Controleur/productControleur.php'; // Affiche la home
         break;
-        
-    case 'register':
-        auth_register(); // A implémenter dans ../Controleur/authControleur.php
+    case '/login':
+        require_once 'Controleur/authControleur.php'; // Logique de connexion
         break;
-        
-    case 'logout':
-        auth_logout(); // A implémenter dans ../Controleur/authControleur.php
+    case '/register':
+        require_once 'Controleur/authControleur.php'; // Logique d'inscription
         break;
-
-    // --- PRODUITS (Accessible à tous) ---
-    case 'home':
-        product_index(); // A implémenter dans ../Controleur/productControleur.php
+    case '/logout':
+        session_destroy();
+        header('Location: ./home');
         break;
-        
-    case 'detail':
-        $id = $_GET['id'] ?? null;
-        product_show($id); // A implémenter dans ../Controleur/productControleur.php
+    case '/sell':
+        require_once 'Controleur/sellControleur.php'; // Logique de vente
         break;
-
-    // --- ACTIONS CONNECTÉES (Vérifier la session dans le contrôleur) ---
-    case 'sell':
-        // Correspond à la page "setu" du sujet
-        product_create(); // A implémenter dans ../Controleur/productControleur.php
+    case '/detail':
+        require_once 'Controleur/detailControleur.php'; // Logique de détail
         break;
-        
-    case 'edit_article':
-        $id = $_GET['id'] ?? null;
-        product_edit($id); // A implémenter dans ../Controleur/productControleur.php
+    case '/cart':
+        require_once 'Controleur/cartControleur.php'; // Logique du panier
         break;
-
-    // --- PANIER ET FACTURES ---
-    case 'cart':
-        cart_view(); // A implémenter dans ../Controleur/cartControleur.php
+    case '/cart/validate':
+        require_once 'Controleur/cartControleur.php'; // Logique de validation du panier
         break;
-        
-    case 'add_to_cart':
-        cart_add(); // A implémenter dans ../Controleur/cartControleur.php
+    case '/edit':
+        require_once 'Controleur/editControleur.php'; // Logique d'edition
         break;
-        
-    case 'validate_cart':
-        // Vérifie le solde et génère la facture (validate dans le sujet)
-        cart_validate(); // A implémenter dans ../Controleur/cartControleur.php
+    case '/account':
+        require_once 'Controleur/accountControleur.php'; // Logique du compte
         break;
-
-    // --- COMPTE UTILISATEUR ---
-    case 'account':
-        account_profile(); // A implémenter dans ../Controleur/accountControleur.php
+    case '/admin':
+        require_once 'Controleur/adminControleur.php'; // Logique d'administration
         break;
-
-    // --- ADMINISTRATION ---
-    case 'admin':
-        // Vérifier le rôle admin ici ou dans le contrôleur
-        account_admin_dashboard(); // A implémenter dans ../Controleur/accountControleur.php
-        break;
-
-    // --- ERREUR 404 ---
     default:
-        http_response_code(404);
-        echo '<h1>404 - Page non trouvée</h1>';
+        echo "404 - Page non trouvée";
         break;
 }

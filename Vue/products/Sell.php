@@ -1,3 +1,10 @@
+<?php
+if (!defined('SELL_VIEW_CONTEXT')) {
+    require_once __DIR__ . '/../../Controleur/productControleur.php';
+    sellProduct();
+    exit;
+}
+?>
 <!DOCTYPE html>
 <html>
 <body>
@@ -8,7 +15,7 @@
     <p><strong><?php echo htmlspecialchars($message); ?></strong></p>
 <?php endif; ?>
 
-<form method="POST" action="/php_exam/groupe6__projet_php/sell">
+<form method="POST" action="">
     <label>Nom :</label><br>
     <input type="text" name="nom" required><br><br>
 
@@ -18,24 +25,18 @@
     <label>Prix :</label><br>
     <input type="number" name="prix" step="0.01" min="0" required><br><br>
 
-    <label>Date de publication :</label><br>
-    <input type="date" name="date_publication" required><br><br>
-
     <label>Image URL :</label><br>
     <input type="text" name="image_url"><br><br>
 
-    <label>Stock initial :</label><br>
+    <label>Quantité à vendre :</label><br>
     <input type="number" name="stock_quantity" min="0" required><br><br>
 
-    <?php if ($sessionUserId > 0) : ?>
-        <p>Auteur ID (connecté) : <?php echo intval($sessionUserId); ?></p>
-    <?php else : ?>
-        <label>Auteur ID :</label><br>
-        <input type="number" name="auteur_id" min="1" required><br><br>
-    <?php endif; ?>
-
-    <button type="submit">Créer l'article</button>
+    <button type="submit">Publier / Mettre en stock</button>
 </form>
+
+<p>
+    <a href="/php_exam/groupe6__projet_php/Vue/products/Home.php">Retour à la home</a>
+</p>
 
 </body>
 </html>

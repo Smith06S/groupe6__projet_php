@@ -1,3 +1,11 @@
+<?php
+require_once __DIR__ . '/../../Controleur/authControleur.php';
+$message = null;
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $message = register();
+}
+?>
 
 <!DOCTYPE html>
 <html>
