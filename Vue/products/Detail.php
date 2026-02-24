@@ -1,125 +1,4 @@
-<?php
-require_once dirname(__DIR__, 2) . "/auth.php";
-require_once dirname(__DIR__, 2) . "/db.php";
 
-start_session();
-
-$message = "";
-$id = intval($_GET['id'] ?? $_POST['id'] ?? 0);
-
-if ($id <= 0) {
-    die("ID d'article invalide.");
-}
-
-function getStockQuantityColumn(mysqli $mysqli): ?string {
-    $result = $mysqli->query("SHOW COLUMNS FROM stock");
-    if (!$result) {
-        return null;
-    }
-
-    $columns = [];
-    while ($row = $result->fetch_assoc()) {
-        $columns[] = strtolower($row['Field']);
-    }
-
-    $candidates = ['quantity', 'quantite', 'stock', 'nombre_stock', 'nb_stock', 'nombre'];
-    foreach ($candidates as $candidate) {
-        if (in_array($candidate, $columns, true)) {
-            return $candidate;
-        }
-    }
-
-    return null;
-}
-
-$stockQuantityColumn = getStockQuantityColumn($mysqli);
-
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_to_cart'])) {
-    $userId = intval($_SESSION['user_id'] ?? 0);
-
-    if ($userId <= 0) {
-        header("Location: /php_exam/groupe6__projet_php/login");
-        exit;
-    }
-
-    $quantity = intval($_POST['quantity'] ?? 1);
-    if ($quantity < 1) {
-        $quantity = 1;
-    }
-
-    if ($stockQuantityColumn === null) {
-        $message = "Table stock introuvable ou colonne de quantité non reconnue.";
-    } else {
-        $stmtStock = $mysqli->prepare("SELECT `{$stockQuantityColumn}` AS stock_qty FROM stock WHERE article_id = ? LIMIT 1");
-
-        if ($stmtStock === false) {
-            $message = "Erreur SQL (prepare stock) : " . $mysqli->error;
-        } else {
-            $stmtStock->bind_param("i", $id);
-            $stmtStock->execute();
-            $resultStock = $stmtStock->get_result();
-            $stockRow = $resultStock ? $resultStock->fetch_assoc() : null;
-            $stmtStock->close();
-
-            $availableStock = $stockRow ? intval($stockRow['stock_qty']) : 0;
-
-            $stmtInCart = $mysqli->prepare("SELECT COUNT(*) AS qty FROM cart WHERE user_id = ? AND article_id = ?");
-            if ($stmtInCart) {
-                $stmtInCart->bind_param("ii", $userId, $id);
-                $stmtInCart->execute();
-                $resInCart = $stmtInCart->get_result();
-                $inCartRow = $resInCart ? $resInCart->fetch_assoc() : ['qty' => 0];
-                $alreadyInCart = intval($inCartRow['qty'] ?? 0);
-                $stmtInCart->close();
-            } else {
-                $alreadyInCart = 0;
-            }
-
-            if ($availableStock <= 0) {
-                $message = "Article en rupture de stock.";
-            } elseif (($alreadyInCart + $quantity) > $availableStock) {
-                $message = "Stock insuffisant. Disponible : " . max(0, $availableStock - $alreadyInCart);
-            } else {
-                $stmtCart = $mysqli->prepare("INSERT INTO cart (user_id, article_id) VALUES (?, ?)");
-
-                if ($stmtCart === false) {
-                    $message = "Erreur SQL (prepare cart) : " . $mysqli->error;
-                } else {
-                    $ok = true;
-                    for ($i = 0; $i < $quantity; $i++) {
-                        $stmtCart->bind_param("ii", $userId, $id);
-                        if (!$stmtCart->execute()) {
-                            $ok = false;
-                            break;
-                        }
-                    }
-
-                    if ($ok) {
-                        $message = "Article ajouté au panier.";
-                    } else {
-                        $message = "Erreur lors de l'ajout au panier : " . $stmtCart->error;
-                    }
-
-                    $stmtCart->close();
-                }
-            }
-        }
-    }
-}
-
-$stmt = $mysqli->prepare("SELECT a.*, u.role AS auteur_role
-                         FROM article a
-                         LEFT JOIN user u ON u.id = a.auteur_id
-                         WHERE a.id = ?
-                         LIMIT 1");
-if ($stmt === false) {
-    die("Erreur SQL (prepare detail) : " . $mysqli->error);
-}
-
-$stmt->bind_param("i", $id);
-$stmt->execute();
-$result = $stmt->get_result();
-?>
 <!DOCTYPE html>
 <html>
 <body>
@@ -174,7 +53,7 @@ if ($result && $result->num_rows > 0) {
     echo "</div>";
     ?>
 
-    <form method="POST" action="Detail.php?id=<?php echo $id; ?>">
+    <form method="POST" action="/php_exam/groupe6__projet_php/detail?id=<?php echo $id; ?>">
         <input type="hidden" name="id" value="<?php echo $id; ?>">
         <input type="hidden" name="add_to_cart" value="1">
 
@@ -185,7 +64,7 @@ if ($result && $result->num_rows > 0) {
     </form>
 
     <?php if ($canEdit) : ?>
-        <form method="POST" action="Modifier.php">
+        <form method="POST" action="/php_exam/groupe6__projet_php/edit">
             <input type="hidden" name="id" value="<?php echo $id; ?>">
             <input type="hidden" name="open_edit" value="1">
             <button type="submit">Modifier / Supprimer cet article</button>

@@ -2,6 +2,7 @@
 require_once dirname(__DIR__, 2) . "/auth.php";
 require_once dirname(__DIR__, 2) . "/db.php";
 
+
 require_login();
 
 $currentUserId = intval($_SESSION['user_id']);

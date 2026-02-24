@@ -9,7 +9,7 @@ $connectedUserId = intval($_SESSION['user_id']);
 $targetUserId = intval($_GET['id'] ?? $_POST['id'] ?? $connectedUserId);
 
 if ($targetUserId <= 0) {
-    die("Utilisateur invalide. Ouvre la page avec un id, ex: Compte.php?id=1");
+    die("Invalid user. Open this page with an id, for example: /account?id=1");
 }
 
 $isOwnProfile = ($targetUserId === $connectedUserId);
@@ -177,7 +177,7 @@ if ($isOwnProfile) {
 
 <?php if ($isOwnProfile) : ?>
     <h2>Mes informations (modifiable)</h2>
-    <form method="POST" action="Compte.php">
+    <form method="POST" action="/php_exam/groupe6__projet_php/account">
         <input type="hidden" name="id" value="<?php echo intval($connectedUserId); ?>">
         <input type="hidden" name="action" value="update_profile">
 
@@ -201,7 +201,7 @@ if ($isOwnProfile) {
 
     <h2>Ajouter de l'argent au solde</h2>
     <p>Solde actuel : <?php echo htmlspecialchars(number_format(floatval($user['solde']), 2, '.', '')); ?></p>
-    <form method="POST" action="Compte.php">
+    <form method="POST" action="/php_exam/groupe6__projet_php/account">
         <input type="hidden" name="action" value="add_money">
         <input type="number" name="amount" step="0.01" min="0.01" required>
         <button type="submit">Ajouter</button>
