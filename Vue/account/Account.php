@@ -15,7 +15,7 @@ $invoices = is_array($invoices) ? $invoices : [];
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>VNYL - Accueil</title>
+    <title>VNYL - Compte</title>
     <link rel="stylesheet" href="../../style.css"> 
 </head>
 <body>

@@ -15,7 +15,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>VNYL - Accueil</title>
+    <title>VNYL - Connexion</title>
     <link rel="stylesheet" href="../../style.css"> 
 </head>
 <body>

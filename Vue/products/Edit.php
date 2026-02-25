@@ -6,43 +6,93 @@ if (!defined('EDIT_VIEW_CONTEXT')) {
 }
 ?>
 <!DOCTYPE html>
-<html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>VNYL - Modifier</title>
+    <link rel="stylesheet" href="../../style.css"> 
+</head>
 <body>
+    <header>
+        <div class="logo">
+            <a href="home.php">
+                <svg viewBox="0 0 200 60" xmlns="http://www.w3.org/2000/svg">
+                    <defs>
+                        <radialGradient id="grad" cx="50%" cy="50%" r="50%">
+                            <stop offset="70%" stop-color="#111"/><stop offset="100%" stop-color="#333"/>
+                        </radialGradient>
+                    </defs>
+                    <circle cx="30" cy="30" r="28" fill="url(#grad)" />
+                    <circle cx="30" cy="30" r="17" fill="none" stroke="#fff" stroke-width="0.5" opacity="0.4" />
+                    <circle cx="30" cy="30" r="8" fill="#e63946" />
+                    <circle cx="30" cy="30" r="1.5" fill="#fff" />
+                    <text x="70" y="42" font-family="Arial, sans-serif" font-weight="900" font-size="28" fill="#111">VNYL</text>
+                </svg>
+            </a>
+        </div>
+        <nav>
+            <a href="home.php">Accueil</a>
+            
+            <?php if(isset($_SESSION['user_id'])): ?>
+                <a href="../cart/Cart.php">Panier</a>
+                <a href="../account/Account.php">Mon Compte</a>
+                <a href="Sell.php">Vendre</a>
+                
+                <a href="/php_exam/groupe6__projet_php/Controleur/logoutControleur.php" class="logout-btn">Déconnexion</a>
+            <?php else: ?>
+                <a href="../auth/Login.php" class="login-btn">Connexion</a>
+            <?php endif; ?>
+        </nav>
+    </header>
 
-<h1>Modifier l'article</h1>
+    <main class="edit-container">
+        <h1 class="edit-title">Modifier l'article</h1>
 
-<?php if (!empty($message)) : ?>
-    <p><strong><?php echo htmlspecialchars($message); ?></strong></p>
-<?php endif; ?>
+        <?php if (!empty($message)) : ?>
+            <p class="status-message"><strong><?= htmlspecialchars($message); ?></strong></p>
+        <?php endif; ?>
 
-<form method="POST" action="">
-    <input type="hidden" name="id" value="<?php echo intval($id); ?>">
-    <input type="hidden" name="action" value="update">
+        <form method="POST" action="">
+            <input type="hidden" name="id" value="<?= intval($id); ?>">
+            <input type="hidden" name="action" value="update">
 
-    <label>Nom :</label><br>
-    <input type="text" name="nom" required value="<?php echo htmlspecialchars($article['nom'] ?? ''); ?>"><br><br>
+            <div class="form-group">
+                <label class="form-label">Nom de l'album</label>
+                <input type="text" name="nom" class="form-input" required value="<?= htmlspecialchars($article['nom'] ?? ''); ?>">
+            </div>
 
-    <label>Description :</label><br>
-    <textarea name="description" rows="4" cols="50" required><?php echo htmlspecialchars($article['description'] ?? ''); ?></textarea><br><br>
+            <div class="form-group">
+                <label class="form-label">Description</label>
+                <textarea name="description" class="form-input" rows="4" required><?= htmlspecialchars($article['description'] ?? ''); ?></textarea>
+            </div>
 
-    <label>Prix :</label><br>
-    <input type="number" name="prix" step="0.01" min="0" required value="<?php echo htmlspecialchars($article['prix'] ?? '0'); ?>"><br><br>
+            <div class="form-group">
+                <label class="form-label">Prix (€)</label>
+                <input type="number" name="prix" class="form-input" step="0.01" min="0" required value="<?= htmlspecialchars($article['prix'] ?? '0'); ?>">
+            </div>
 
-    <label>Image URL :</label><br>
-    <input type="text" name="image_url" value="<?php echo htmlspecialchars($article['image_url'] ?? ''); ?>"><br><br>
+            <div class="form-group">
+                <label class="form-label">URL de l'image</label>
+                <input type="text" name="image_url" class="form-input" value="<?= htmlspecialchars($article['image_url'] ?? ''); ?>">
+            </div>
 
-    <button type="submit">Modifier</button>
-</form>
+            <button type="submit" class="btn-save">Enregistrer les modifications</button>
+        </form>
 
-<form method="POST" action="" onsubmit="return confirm('Supprimer cet article ?');">
-    <input type="hidden" name="id" value="<?php echo intval($id); ?>">
-    <input type="hidden" name="action" value="delete">
-    <button type="submit">Supprimer</button>
-</form>
+        <form method="POST" action="" onsubmit="return confirm('Supprimer cet article définitivement ?');">
+            <input type="hidden" name="id" value="<?= intval($id); ?>">
+            <input type="hidden" name="action" value="delete">
+            <button type="submit" class="btn-delete">Supprimer l'article</button>
+        </form>
 
-<p>
-    <a href="/php_exam/groupe6__projet_php/Vue/products/Detail.php?id=<?php echo intval($id); ?>">Retour au détail</a>
-</p>
+        <a href="<?= BASE_URL ?>/detail?id=<?= intval($id); ?>" class="edit-back-link">
+            ← Retour au détail
+        </a>
+    </main>
+
+    <footer>
+        <p>&copy; 2024 - VNYL</p>
+    </footer>
 
 </body>
 </html>

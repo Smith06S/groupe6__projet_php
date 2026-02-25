@@ -10,7 +10,7 @@ if (!defined('DETAIL_VIEW_CONTEXT')) {
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>VNYL - Accueil</title>
+    <title>VNYL - Detail</title>
     <link rel="stylesheet" href="../../style.css"> 
 </head>
 <body>

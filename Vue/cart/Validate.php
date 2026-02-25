@@ -13,7 +13,7 @@ if (!defined('CART_VALIDATE_VIEW_CONTEXT')) {
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>VNYL - Accueil</title>
+    <title>VNYL - Valider</title>
     <link rel="stylesheet" href="../../style.css"> 
 </head>
 <body>
