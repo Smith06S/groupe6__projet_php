@@ -1,271 +1,180 @@
 <?php
-require_once dirname(__DIR__, 2) . "/auth.php";
-require_once dirname(__DIR__, 2) . "/db.php";
-
-require_login();
-
-$message = "";
-$connectedUserId = intval($_SESSION['user_id']);
-$targetUserId = intval($_GET['id'] ?? $_POST['id'] ?? $connectedUserId);
-
-if ($targetUserId <= 0) {
-    die("Invalid user. Open this page with an id, for example: /account?id=1");
+if (!defined('ACCOUNT_VIEW_CONTEXT')) {
+    require_once __DIR__ . '/../../Controleur/accountControleur.php';
+    exit;
 }
 
-$isOwnProfile = ($targetUserId === $connectedUserId);
-
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $action = $_POST['action'] ?? '';
-
-    if (!$isOwnProfile) {
-        $message = "Vous ne pouvez pas modifier le compte d'un autre utilisateur.";
-    } else {
-        if ($action === 'update_profile') {
-            $username = trim($_POST['username'] ?? '');
-            $mail = trim($_POST['mail'] ?? '');
-            $photo_profil = trim($_POST['photo_profil'] ?? '');
-            $newPassword = trim($_POST['new_password'] ?? '');
-
-            if ($username === '' || $mail === '') {
-                $message = "Username et mail sont obligatoires.";
-            } else {
-                $stmtCheckUnique = $mysqli->prepare("SELECT id FROM user WHERE (username = ? OR mail = ?) AND id <> ? LIMIT 1");
-
-                if ($stmtCheckUnique === false) {
-                    $message = "Erreur SQL (prepare check unique) : " . $mysqli->error;
-                } else {
-                    $stmtCheckUnique->bind_param("ssi", $username, $mail, $connectedUserId);
-                    $stmtCheckUnique->execute();
-                    $stmtCheckUnique->store_result();
-
-                    if ($stmtCheckUnique->num_rows > 0) {
-                        $message = "Username ou email déjà utilisé.";
-                    } else {
-                        if ($newPassword !== '') {
-                            $hashedPassword = password_hash($newPassword, PASSWORD_BCRYPT);
-                            $stmtUpdate = $mysqli->prepare("UPDATE user SET username = ?, mail = ?, photo_profil = ?, mdp = ? WHERE id = ?");
-
-                            if ($stmtUpdate === false) {
-                                $message = "Erreur SQL (prepare update) : " . $mysqli->error;
-                            } else {
-                                $stmtUpdate->bind_param("ssssi", $username, $mail, $photo_profil, $hashedPassword, $connectedUserId);
-                            }
-                        } else {
-                            $stmtUpdate = $mysqli->prepare("UPDATE user SET username = ?, mail = ?, photo_profil = ? WHERE id = ?");
-
-                            if ($stmtUpdate === false) {
-                                $message = "Erreur SQL (prepare update) : " . $mysqli->error;
-                            } else {
-                                $stmtUpdate->bind_param("sssi", $username, $mail, $photo_profil, $connectedUserId);
-                            }
-                        }
-
-                        if (!empty($stmtUpdate)) {
-                            if ($stmtUpdate->execute()) {
-                                $_SESSION['username'] = $username;
-                                $message = "Informations utilisateur mises a jour.";
-                            } else {
-                                $message = "Erreur lors de la mise a jour : " . $stmtUpdate->error;
-                            }
-
-                            $stmtUpdate->close();
-                        }
-                    }
-
-                    $stmtCheckUnique->close();
-                }
-            }
-        }
-
-        if ($action === 'add_money') {
-            $amount = floatval($_POST['amount'] ?? 0);
-
-            if ($amount <= 0) {
-                $message = "Le montant ajoute doit etre superieur a 0.";
-            } else {
-                $stmtAddMoney = $mysqli->prepare("UPDATE user SET solde = solde + ? WHERE id = ?");
-                if ($stmtAddMoney === false) {
-                    $message = "Erreur SQL (prepare add money) : " . $mysqli->error;
-                } else {
-                    $stmtAddMoney->bind_param("di", $amount, $connectedUserId);
-                    if ($stmtAddMoney->execute()) {
-                        $message = "Solde mis a jour avec succes.";
-                    } else {
-                        $message = "Erreur lors de l'ajout d'argent : " . $stmtAddMoney->error;
-                    }
-                    $stmtAddMoney->close();
-                }
-            }
-        }
-    }
-}
-
-$stmtUser = $mysqli->prepare("SELECT id, username, mail, solde, photo_profil, role FROM user WHERE id = ? LIMIT 1");
-
-if ($stmtUser === false) {
-    die("Erreur SQL (prepare user) : " . $mysqli->error);
-}
-
-$stmtUser->bind_param("i", $targetUserId);
-$stmtUser->execute();
-$resultUser = $stmtUser->get_result();
-$user = $resultUser ? $resultUser->fetch_assoc() : null;
-$stmtUser->close();
-
-if (!$user) {
-    die("Utilisateur introuvable.");
-}
-
-$createdArticles = [];
-$stmtCreated = $mysqli->prepare("SELECT id, nom, description, prix, date_publication, image_url FROM article WHERE auteur_id = ? ORDER BY date_publication DESC");
-
-if ($stmtCreated) {
-    $stmtCreated->bind_param("i", $targetUserId);
-    $stmtCreated->execute();
-    $resultCreated = $stmtCreated->get_result();
-    if ($resultCreated) {
-        $createdArticles = $resultCreated->fetch_all(MYSQLI_ASSOC);
-    }
-    $stmtCreated->close();
-}
-
-$purchasedArticles = [];
-if ($isOwnProfile) {
-    $stmtPurchased = $mysqli->prepare("SELECT a.id, a.nom, a.description, ii.quantity, ii.price, i.transaction_date
-                                      FROM invoice_item ii
-                                      INNER JOIN invoice i ON i.id = ii.invoice_id
-                                      INNER JOIN article a ON a.id = ii.article_id
-                                      WHERE i.user_id = ?
-                                      ORDER BY i.transaction_date DESC, a.id DESC");
-    if ($stmtPurchased) {
-        $stmtPurchased->bind_param("i", $connectedUserId);
-        $stmtPurchased->execute();
-        $resultPurchased = $stmtPurchased->get_result();
-        if ($resultPurchased) {
-            $purchasedArticles = $resultPurchased->fetch_all(MYSQLI_ASSOC);
-        }
-        $stmtPurchased->close();
-    }
-}
-
-$invoices = [];
-if ($isOwnProfile) {
-    $stmtInvoices = $mysqli->prepare("SELECT id, transaction_date, montant, facturation_address, facturation_city, facturation_zip
-                                      FROM invoice
-                                      WHERE user_id = ?
-                                      ORDER BY transaction_date DESC");
-    if ($stmtInvoices) {
-        $stmtInvoices->bind_param("i", $connectedUserId);
-        $stmtInvoices->execute();
-        $resultInvoices = $stmtInvoices->get_result();
-        if ($resultInvoices) {
-            $invoices = $resultInvoices->fetch_all(MYSQLI_ASSOC);
-        }
-        $stmtInvoices->close();
-    }
-}
+$user = is_array($user) ? $user : [];
+$createdArticles = is_array($createdArticles) ? $createdArticles : [];
+$purchasedArticles = is_array($purchasedArticles) ? $purchasedArticles : [];
+$invoices = is_array($invoices) ? $invoices : [];
 ?>
+
+
 <!DOCTYPE html>
-<html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>VNYL - Accueil</title>
+    <link rel="stylesheet" href="../../style.css"> 
+</head>
 <body>
-
-<h1>Compte utilisateur</h1>
-
-<?php if (!empty($message)) : ?>
-    <p><strong><?php echo htmlspecialchars($message); ?></strong></p>
-<?php endif; ?>
-
-<?php if ($isOwnProfile) : ?>
-    <h2>Mes informations (modifiable)</h2>
-    <form method="POST" action="/php_exam/groupe6__projet_php/account">
-        <input type="hidden" name="id" value="<?php echo intval($connectedUserId); ?>">
-        <input type="hidden" name="action" value="update_profile">
-
-        <label>Username :</label><br>
-        <input type="text" name="username" required value="<?php echo htmlspecialchars($user['username']); ?>"><br><br>
-
-        <label>Mail :</label><br>
-        <input type="email" name="mail" required value="<?php echo htmlspecialchars($user['mail']); ?>"><br><br>
-
-        <label>Photo de profil (URL) :</label><br>
-        <input type="text" name="photo_profil" value="<?php echo htmlspecialchars($user['photo_profil']); ?>"><br><br>
-
-        <label>Nouveau mot de passe (laisser vide pour ne pas changer) :</label><br>
-        <input type="password" name="new_password"><br><br>
-
-        <label>Role :</label><br>
-        <input type="text" value="<?php echo htmlspecialchars($user['role']); ?>" disabled><br><br>
-
-        <button type="submit">Modifier mes informations</button>
-    </form>
-
-    <h2>Ajouter de l'argent au solde</h2>
-    <p>Solde actuel : <?php echo htmlspecialchars(number_format(floatval($user['solde']), 2, '.', '')); ?></p>
-    <form method="POST" action="/php_exam/groupe6__projet_php/account">
-        <input type="hidden" name="action" value="add_money">
-        <input type="number" name="amount" step="0.01" min="0.01" required>
-        <button type="submit">Ajouter</button>
-    </form>
-<?php else : ?>
-    <h2>Informations du compte</h2>
-    <p>Username : <?php echo htmlspecialchars($user['username']); ?></p>
-    <p>Mail : <?php echo htmlspecialchars($user['mail']); ?></p>
-    <p>Photo : <?php echo htmlspecialchars($user['photo_profil']); ?></p>
-<?php endif; ?>
-
-<hr>
-
-<h2>Articles publies par ce compte</h2>
-<?php if (!empty($createdArticles)) : ?>
-    <?php foreach ($createdArticles as $article) : ?>
-        <div>
-            <p><strong><?php echo htmlspecialchars($article['nom']); ?></strong></p>
-            <p><?php echo htmlspecialchars($article['description']); ?></p>
-            <p>Prix : <?php echo htmlspecialchars($article['prix']); ?></p>
-            <p>Date : <?php echo htmlspecialchars($article['date_publication']); ?></p>
-            <p>Image : <?php echo htmlspecialchars($article['image_url']); ?></p>
-            <hr>
+    <header>
+        <div class="logo">
+            <a href="../products/home.php">
+                <svg viewBox="0 0 200 60" xmlns="http://www.w3.org/2000/svg">
+                    <defs>
+                        <radialGradient id="grad" cx="50%" cy="50%" r="50%">
+                            <stop offset="70%" stop-color="#111"/><stop offset="100%" stop-color="#333"/>
+                        </radialGradient>
+                    </defs>
+                    <circle cx="30" cy="30" r="28" fill="url(#grad)" />
+                    <circle cx="30" cy="30" r="17" fill="none" stroke="#fff" stroke-width="0.5" opacity="0.4" />
+                    <circle cx="30" cy="30" r="8" fill="#e63946" />
+                    <circle cx="30" cy="30" r="1.5" fill="#fff" />
+                    <text x="70" y="42" font-family="Arial, sans-serif" font-weight="900" font-size="28" fill="#111">VNYL</text>
+                </svg>
+            </a>
         </div>
-    <?php endforeach; ?>
-<?php else : ?>
-    <p>Aucun article publie.</p>
-<?php endif; ?>
+        <nav>
+            <a href="../products/home.php">Accueil</a>
+            
+            <?php if(isset($_SESSION['user_id'])): ?>
+                <a href="../cart/Cart.php">Panier</a>
+                <a href="Account.php">Mon Compte</a>
+                <a href="../products/Sell.php">Vendre</a>
+                
+                <a href="/php_exam/groupe6__projet_php/Controleur/logoutControleur.php" class="logout-btn">Déconnexion</a>
+            <?php else: ?>
+                <a href="../auth/Login.php" class="login-btn">Connexion</a>
+            <?php endif; ?>
+        </nav>
+    </header>
 
-<?php if ($isOwnProfile) : ?>
-    <h2>Articles achetes</h2>
-    <?php if (!empty($purchasedArticles)) : ?>
-        <?php foreach ($purchasedArticles as $article) : ?>
-            <div>
-                <p><strong><?php echo htmlspecialchars($article['nom']); ?></strong></p>
-                <p><?php echo htmlspecialchars($article['description']); ?></p>
-                <p>Quantite : <?php echo intval($article['quantity']); ?></p>
-                <p>Prix unitaire : <?php echo htmlspecialchars(number_format(floatval($article['price']), 2, '.', '')); ?></p>
-                <p>Date : <?php echo htmlspecialchars($article['transaction_date']); ?></p>
-                <hr>
-            </div>
-        <?php endforeach; ?>
-    <?php else : ?>
-        <p>Aucun achat enregistre.</p>
-    <?php endif; ?>
+    <main class="account-container">
+        <div class="account-header">
+            <h1>Mon Compte</h1>
+            <p class="balance-badge">Solde : <strong><?php echo number_format(floatval($user['solde'] ?? 0), 2, ',', ' '); ?> €</strong></p>
+        </div>
 
-    <h2>Mes factures</h2>
-    <?php if (!empty($invoices)) : ?>
-        <?php foreach ($invoices as $invoice) : ?>
-            <div>
-                <p><strong>Facture #<?php echo intval($invoice['id']); ?></strong></p>
-                <p>Date : <?php echo htmlspecialchars($invoice['transaction_date']); ?></p>
-                <p>Montant : <?php echo htmlspecialchars(number_format(floatval($invoice['montant']), 2, '.', '')); ?></p>
-                <p>Adresse : <?php echo htmlspecialchars($invoice['facturation_address']); ?></p>
-                <p>Ville : <?php echo htmlspecialchars($invoice['facturation_city']); ?></p>
-                <p>Code postal : <?php echo htmlspecialchars($invoice['facturation_zip']); ?></p>
-                <hr>
+        <div class="account-grid">
+            <div class="account-column">
+                <section class="account-card">
+                    <h2>Mes informations</h2>
+                    <div class="product-image">
+                        <?php if (!empty($user['photo_profil'])) : ?>
+                            <img src="<?php echo htmlspecialchars($user['photo_profil']); ?>" alt="Photo de profil">
+                        <?php else : ?>
+                            <div class="profile-placeholder">Aucune photo</div>
+                        <?php endif; ?>
+                    </div>
+
+                    <div class="product-info">
+                        <form method="POST" class="account-form">
+                            <input type="hidden" name="id" value="<?php echo intval($connectedUserId); ?>">
+                            <input type="hidden" name="action" value="update_profile">
+
+                            <div class="input-group">
+                                <label>Username (Unique)</label>
+                                <input type="text" name="username" value="<?php echo htmlspecialchars($user['username'] ?? ''); ?>" required>
+                            </div>
+
+                            <div class="input-group">
+                                <label>Email (Unique)</label>
+                                <input type="email" name="mail" value="<?php echo htmlspecialchars($user['mail'] ?? ''); ?>" required>
+                            </div>
+
+                            <div class="input-group">
+                                <label>Lien de la photo de profil</label>
+                                <input type="text" name="photo_profil" value="<?php echo htmlspecialchars($user['photo_profil'] ?? ''); ?>" placeholder="URL de l'image">
+                            </div>
+
+                            <div class="input-group">
+                                <label>Nouveau mot de passe</label>
+                                <input type="password" name="new_password" placeholder="Laisser vide pour ne pas changer">
+                                <input type="password" name="new_password_confirm" placeholder="Confirmer le mot de passe" style="margin-top:10px;">
+                            </div>
+
+                            <button type="submit" class="btn-primary">Mettre à jour mon profil</button>
+                        </form>
+                    </div>
+                </section>
+
+                <section class="account-card">
+                    <h2>Recharger mon compte</h2>
+                    <form method="POST" class="inline-form">
+                        <input type="hidden" name="action" value="add_money">
+                        <input type="number" name="amount" step="0.01" min="0.01" placeholder="Montant à ajouter" required>
+                        <button type="submit" class="btn-small">Ajouter</button>
+                    </form>
+                </section>
             </div>
-        <?php endforeach; ?>
-    <?php else : ?>
-        <p>Aucune facture disponible.</p>
-    <?php endif; ?>
-<?php endif; ?>
+
+            <div class="account-column">
+                
+                <section class="account-card">
+                    <h2>Mes articles en vente</h2>
+                    <div class="item-list">
+                        <?php if (!empty($createdArticles)) : ?>
+                            <?php foreach ($createdArticles as $article) : ?>
+                                <div class="mini-item">
+                                    <img src="<?php echo htmlspecialchars($article['image_url']); ?>" alt="vinyle">
+                                    <div class="mini-item-info">
+                                        <p class="name"><?php echo htmlspecialchars($article['nom']); ?></p>
+                                        <p class="price"><?php echo htmlspecialchars($article['prix']); ?> €</p>
+                                    </div>
+                                    <a href="../products/Edit.php?id=<?php echo $article['id']; ?>" class="btn-icon">✎</a>
+                                </div>
+                            <?php endforeach; ?>
+                        <?php else : ?>
+                            <p class="empty-msg">Vous n'avez aucun article en vente.</p>
+                        <?php endif; ?>
+                    </div>
+                </section>
+
+                <section class="account-card">
+                    <h2>Mes achats</h2>
+                    <div class="item-list">
+                        <?php if (!empty($purchasedArticles)) : ?>
+                            <?php foreach ($purchasedArticles as $article) : ?>
+                                <div class="mini-item purchased">
+                                    <div class="mini-item-info">
+                                        <p class="name"><?php echo htmlspecialchars($article['nom']); ?></p>
+                                        <p class="meta">Acheté le : <?php echo htmlspecialchars($article['transaction_date']); ?></p>
+                                    </div>
+                                </div>
+                            <?php endforeach; ?>
+                        <?php else : ?>
+                            <p class="empty-msg">Vous n'avez pas encore effectué d'achats.</p>
+                        <?php endif; ?>
+                    </div>
+                </section>
+
+                <section class="account-card">
+                    <h2>Mes factures</h2>
+                    <div class="item-list">
+                        <?php if (!empty($invoices)) : ?>
+                            <?php foreach ($invoices as $invoice) : ?>
+                                <div class="mini-item invoice">
+                                    <div>
+                                        <p class="name">Commande #<?php echo intval($invoice['id']); ?></p>
+                                        <p class="meta"><?php echo htmlspecialchars($invoice['transaction_date']); ?> • <?php echo htmlspecialchars($invoice['montant']); ?> €</p>
+                                    </div>
+                                    <button class="btn-small outline">Détails</button>
+                                </div>
+                            <?php endforeach; ?>
+                        <?php else : ?>
+                            <p class="empty-msg">Aucune facture disponible.</p>
+                        <?php endif; ?>
+                    </div>
+                </section>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <p>&copy; 2024 - VNYL</p>
+    </footer>
 
 </body>
 </html>
-

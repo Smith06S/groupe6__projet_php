@@ -1,86 +1,70 @@
 <?php
+session_start();
 
-// 1. Démarrage de la session (essentiel pour la connexion)
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
+$url = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
+$base_path = '/groupe6__projet_php';
+
+$path = str_replace($base_path, '', $url);
+
+if ($path === '') {
+    $path = '/';
 }
 
-// 2. Inclusion de la base de données et des modèles/contrôleurs
-// (A adapter selon tes noms de fichiers réels)
-require_once __DIR__ . '/../db/Database.php';
-require_once __DIR__ . '/../Controleur/authControleur.php';
-require_once __DIR__ . '/../Controleur/productControleur.php';
-require_once __DIR__ . '/../Controleur/cartControleur.php';
-require_once __DIR__ . '/../Controleur/accountControleur.php';
+$isLoggedIn = isset($_SESSION['user_id']) && intval($_SESSION['user_id']) > 0;
+$publicPaths = ['/', '/home', '/detail', '/login', '/register'];
 
-// 3. Récupération de l'action demandée (par défaut 'home')
-$action = $_GET['action'] ?? 'home';
+if (!$isLoggedIn && !in_array($path, $publicPaths, true)) {
+    header('Location: /php_exam/groupe6__projet_php/Vue/auth/Login.php');
+    exit;
+}
 
-// 4. Le ROUTEUR (Aiguillage MVC par fonctions)
-switch ($action) {
-    
-    // --- AUTHENTIFICATION ---
-    case 'login':
-        auth_login(); // A implémenter dans ../Controleur/authControleur.php
-        break;
-        
-    case 'register':
-        auth_register(); // A implémenter dans ../Controleur/authControleur.php
-        break;
-        
-    case 'logout':
-        auth_logout(); // A implémenter dans ../Controleur/authControleur.php
-        break;
+if ($isLoggedIn && $path === '/admin') {
+    require_once __DIR__ . '/../Modele/userModele.php';
+    $connectedUser = getUserById(intval($_SESSION['user_id']));
+    $isAdmin = !empty($connectedUser['role']) && strtolower((string)$connectedUser['role']) === 'admin';
 
-    // --- PRODUITS (Accessible à tous) ---
-    case 'home':
-        product_index(); // A implémenter dans ../Controleur/productControleur.php
-        break;
-        
-    case 'detail':
-        $id = $_GET['id'] ?? null;
-        product_show($id); // A implémenter dans ../Controleur/productControleur.php
-        break;
+    if (!$isAdmin) {
+        header('Location: /php_exam/groupe6__projet_php/Vue/products/Home.php');
+        exit;
+    }
+}
 
-    // --- ACTIONS CONNECTÉES (Vérifier la session dans le contrôleur) ---
-    case 'sell':
-        // Correspond à la page "setu" du sujet
-        product_create(); // A implémenter dans ../Controleur/productControleur.php
+switch ($path) {
+    case '/':
+    case '/home':
+        require_once 'Controleur/productControleur.php'; // Affiche la home
         break;
-        
-    case 'edit_article':
-        $id = $_GET['id'] ?? null;
-        product_edit($id); // A implémenter dans ../Controleur/productControleur.php
+    case '/login':
+        require_once 'Controleur/authControleur.php'; // Logique de connexion
         break;
-
-    // --- PANIER ET FACTURES ---
-    case 'cart':
-        cart_view(); // A implémenter dans ../Controleur/cartControleur.php
+    case '/register':
+        require_once 'Controleur/authControleur.php'; // Logique d'inscription
         break;
-        
-    case 'add_to_cart':
-        cart_add(); // A implémenter dans ../Controleur/cartControleur.php
+    case '/logout':
+        require_once 'Controleur/logoutControleur.php';
         break;
-        
-    case 'validate_cart':
-        // Vérifie le solde et génère la facture (validate dans le sujet)
-        cart_validate(); // A implémenter dans ../Controleur/cartControleur.php
+    case '/sell':
+        require_once 'Controleur/sellControleur.php'; // Logique de vente
         break;
-
-    // --- COMPTE UTILISATEUR ---
-    case 'account':
-        account_profile(); // A implémenter dans ../Controleur/accountControleur.php
+    case '/detail':
+        require_once 'Controleur/detailControleur.php'; // Logique de détail
         break;
-
-    // --- ADMINISTRATION ---
-    case 'admin':
-        // Vérifier le rôle admin ici ou dans le contrôleur
-        account_admin_dashboard(); // A implémenter dans ../Controleur/accountControleur.php
+    case '/cart':
+        require_once 'Controleur/cartControleur.php'; // Logique du panier
         break;
-
-    // --- ERREUR 404 ---
+    case '/cart/validate':
+        require_once 'Controleur/cartControleur.php'; // Logique de validation du panier
+        break;
+    case '/edit':
+        require_once 'Controleur/editControleur.php'; // Logique d'edition
+        break;
+    case '/account':
+        require_once 'Controleur/accountControleur.php'; // Logique du compte
+        break;
+    case '/admin':
+        require_once 'Controleur/adminControleur.php'; // Logique d'administration
+        break;
     default:
-        http_response_code(404);
-        echo '<h1>404 - Page non trouvée</h1>';
+        echo "404 - Page non trouvée";
         break;
 }
