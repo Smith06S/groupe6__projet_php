@@ -22,7 +22,12 @@ if (!defined('DETAIL_VIEW_CONTEXT')) {
     <p>Date de publication : <?php echo htmlspecialchars($article['date_publication'] ?? ''); ?></p>
     <p>Image URL : <?php echo htmlspecialchars($article['image_url'] ?? ''); ?></p>
     <p>Stock : <?php echo htmlspecialchars((string)max(0, intval($currentStock ?? 0))); ?></p>
-    <hr>
+    <p>
+        <a href="/php_exam/groupe6__projet_php/Vue/account/Account.php?id=<?php echo intval($article['auteur_id'] ?? 0); ?>">
+            Voir le vendeur
+        </a>
+    </p>
+    <hr> 
 </div>
 
 <form method="POST" action="">

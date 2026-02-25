@@ -39,13 +39,12 @@ function detailProduct() {
             $quantity = 1;
         }
 
-        $availableStock = getArticleStockById($id);
-        $alreadyInCart = getCartQuantityForArticle($userId, $id);
+        $availableStock = getArticleAvailableStockById($id);
 
         if ($availableStock === 0) {
             $message = "Article en rupture de stock.";
-        } elseif ($availableStock > 0 && ($alreadyInCart + $quantity) > $availableStock) {
-            $message = "Stock insuffisant. Disponible : " . max(0, $availableStock - $alreadyInCart);
+        } elseif ($availableStock > 0 && $quantity > $availableStock) {
+            $message = "Stock insuffisant. Disponible : " . max(0, $availableStock);
         } else {
             $ok = addArticleToCart($userId, $id, $quantity);
             $message = $ok ? "Article ajouté au panier." : "Erreur lors de l'ajout au panier.";
@@ -57,7 +56,7 @@ function detailProduct() {
         die("Aucun article trouvé.");
     }
 
-    $currentStock = getArticleStockById($id);
+    $currentStock = getArticleAvailableStockById($id);
     $connectedUserId = intval($_SESSION['user_id'] ?? 0);
     $canEdit = false;
 

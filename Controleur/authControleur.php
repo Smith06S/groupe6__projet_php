@@ -31,10 +31,15 @@ function register(){
     $username = trim($_POST['username'] ?? '');
     $mail = trim($_POST['mail'] ?? '');
     $passwordRaw = $_POST['password'] ?? '';
+    $passwordConfirm = $_POST['password_confirm'] ?? '';
     $password = password_hash($passwordRaw, PASSWORD_BCRYPT);
 
-    if ($username === '' || $mail === '' || $passwordRaw === '') {
+    if ($username === '' || $mail === '' || $passwordRaw === '' || $passwordConfirm === '') {
         return "Merci de remplir tous les champs.";
+    }
+
+    if ($passwordRaw !== $passwordConfirm) {
+        return "Les deux mots de passe ne correspondent pas.";
     }
 
     return registerIdentifiant($username, $mail, $password);

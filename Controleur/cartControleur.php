@@ -19,6 +19,20 @@ function showCartPage() {
 		$action = $_POST['action'] ?? '';
 		$articleId = intval($_POST['article_id'] ?? 0);
 
+		if ($action === 'set_quantity' && $articleId > 0) {
+			$requestedQty = intval($_POST['quantity'] ?? 1);
+			if ($requestedQty < 1) {
+				$requestedQty = 1;
+			}
+
+			$result = setCartArticleQuantity($userId, $articleId, $requestedQty);
+			if (!empty($result['ok'])) {
+				$message = 'Quantité mise à jour.';
+			} else {
+				$message = 'Impossible de mettre cette quantité (stock max atteint).';
+			}
+		}
+
 		if ($action === 'remove' && $articleId > 0) {
 			$removed = removeArticleFromCart($userId, $articleId);
 			$message = $removed ? 'Article supprimé du panier.' : 'Erreur lors de la suppression.';
@@ -27,7 +41,10 @@ function showCartPage() {
 
 	$cartItems = getUserCartItems($userId);
 	$total = 0;
-	foreach ($cartItems as $item) {
+	foreach ($cartItems as $index => $item) {
+		$articleId = intval($item['article_id'] ?? 0);
+		$cartItems[$index]['max_quantity'] = getMaxAllowedCartQuantityForArticle($userId, $articleId);
+
 		$total += floatval($item['subtotal'] ?? 0);
 	}
 

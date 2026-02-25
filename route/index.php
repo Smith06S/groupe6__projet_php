@@ -10,6 +10,25 @@ if ($path === '') {
     $path = '/';
 }
 
+$isLoggedIn = isset($_SESSION['user_id']) && intval($_SESSION['user_id']) > 0;
+$publicPaths = ['/', '/home', '/detail', '/login', '/register'];
+
+if (!$isLoggedIn && !in_array($path, $publicPaths, true)) {
+    header('Location: /php_exam/groupe6__projet_php/Vue/auth/Login.php');
+    exit;
+}
+
+if ($isLoggedIn && $path === '/admin') {
+    require_once __DIR__ . '/../Modele/userModele.php';
+    $connectedUser = getUserById(intval($_SESSION['user_id']));
+    $isAdmin = !empty($connectedUser['role']) && strtolower((string)$connectedUser['role']) === 'admin';
+
+    if (!$isAdmin) {
+        header('Location: /php_exam/groupe6__projet_php/Vue/products/Home.php');
+        exit;
+    }
+}
+
 switch ($path) {
     case '/':
     case '/home':
@@ -22,8 +41,7 @@ switch ($path) {
         require_once 'Controleur/authControleur.php'; // Logique d'inscription
         break;
     case '/logout':
-        session_destroy();
-        header('Location: ./home');
+        require_once 'Controleur/logoutControleur.php';
         break;
     case '/sell':
         require_once 'Controleur/sellControleur.php'; // Logique de vente

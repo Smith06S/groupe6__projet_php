@@ -37,9 +37,12 @@ function loadAccountPage()
             $mail = trim($_POST['mail'] ?? '');
             $photo_profil = trim($_POST['photo_profil'] ?? '');
             $newPassword = trim($_POST['new_password'] ?? '');
+            $newPasswordConfirm = trim($_POST['new_password_confirm'] ?? '');
 
             if ($username === '' || $mail === '') {
                 $message = 'Username et mail sont obligatoires.';
+            } elseif ($newPassword !== '' && $newPassword !== $newPasswordConfirm) {
+                $message = 'Les deux mots de passe ne correspondent pas.';
             } elseif (checkUnique($username, $mail, $connectedUserId)) {
                 $message = 'Username ou email déjà utilisé.';
             } else {

@@ -35,6 +35,20 @@ if (!defined('CART_VIEW_CONTEXT')) {
                 </a>
             </p>
 
+            <form method="POST" action="" style="display:inline-block;">
+                <input type="hidden" name="article_id" value="<?php echo intval($item['article_id'] ?? 0); ?>">
+                <input type="hidden" name="action" value="set_quantity">
+                <label>Quantité :</label>
+                <input type="number"
+                       name="quantity"
+                       min="1"
+                       max="<?php echo max(1, intval($item['max_quantity'] ?? 1)); ?>"
+                       value="<?php echo max(1, intval($item['quantity'] ?? 1)); ?>"
+                       oninput="if (parseInt(this.value || '1', 10) < 1) this.value = 1;"
+                       required>
+                <button type="submit">Mettre à jour</button>
+            </form>
+
             <form method="POST" action="" onsubmit="return confirm('Supprimer cet article du panier ?');">
                 <input type="hidden" name="article_id" value="<?php echo intval($item['article_id'] ?? 0); ?>">
                 <input type="hidden" name="action" value="remove">

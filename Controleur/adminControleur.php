@@ -61,7 +61,9 @@ function showAdminPage() {
 				$role = 'user';
 			}
 
-			if ($userId > 0 && $username !== '' && $mail !== '' && $solde >= 0) {
+			if ($userId === $connectedUserId) {
+				$message = 'Impossible de modifier votre propre compte depuis cette section.';
+			} elseif ($userId > 0 && $username !== '' && $mail !== '' && $solde >= 0) {
 				$ok = adminUpdateUserById($userId, $username, $mail, $role, $solde, $photoProfil);
 				$message = $ok ? 'Utilisateur mis à jour.' : 'Erreur lors de la mise à jour utilisateur.';
 			} else {
@@ -81,7 +83,9 @@ function showAdminPage() {
 	}
 
 	$articles = adminGetAllArticles();
-	$users = adminGetAllUsers();
+	$users = array_values(array_filter(adminGetAllUsers(), function ($user) use ($connectedUserId) {
+		return intval($user['id'] ?? 0) !== $connectedUserId;
+	}));
 
 	if (!defined('ADMIN_VIEW_CONTEXT')) {
 		define('ADMIN_VIEW_CONTEXT', true);

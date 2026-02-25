@@ -28,6 +28,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <label>Password :</label><br>
     <input type="password" name="password" required><br><br>
 
+    <label>Confirmer Password :</label><br>
+    <input type="password" name="password_confirm" required><br><br>
+
     <button type="submit">Créer</button>
 </form>
 

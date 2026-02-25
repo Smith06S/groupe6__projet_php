@@ -22,6 +22,10 @@ $invoices = is_array($invoices) ? $invoices : [];
 <?php endif; ?>
 
 <?php if ($isOwnProfile) : ?>
+    <p>
+        <a href="/php_exam/groupe6__projet_php/Controleur/logoutControleur.php">Se déconnecter</a>
+    </p>
+
     <h2>Mes informations (modifiable)</h2>
     <form method="POST" action="">
         <input type="hidden" name="id" value="<?php echo intval($connectedUserId); ?>">
@@ -38,6 +42,9 @@ $invoices = is_array($invoices) ? $invoices : [];
 
         <label>Nouveau mot de passe (laisser vide pour ne pas changer) :</label><br>
         <input type="password" name="new_password"><br><br>
+
+        <label>Confirmer le nouveau mot de passe :</label><br>
+        <input type="password" name="new_password_confirm"><br><br>
 
         <label>Role :</label><br>
         <input type="text" value="<?php echo htmlspecialchars($user['role'] ?? ''); ?>" disabled><br><br>

@@ -155,6 +155,51 @@ function getArticleStockById($articleId): int {
     return max(0, $qty);
 }
 
+function getArticleAvailableStockById($articleId): int {
+    $mysqli = dbConnect();
+
+    $stockQuantityColumn = getStockQuantityColumn($mysqli);
+    $stockArticleColumn = getStockArticleColumn($mysqli);
+    $cartArticleColumn = getCartArticleColumn($mysqli);
+
+    if ($stockQuantityColumn === null || $stockArticleColumn === null || $cartArticleColumn === null) {
+        $mysqli->close();
+        return 0;
+    }
+
+    $sql = "SELECT
+                COALESCE((
+                    SELECT s.`{$stockQuantityColumn}`
+                    FROM stock s
+                    WHERE s.`{$stockArticleColumn}` = ?
+                    LIMIT 1
+                ), 0)
+                -
+                COALESCE((
+                    SELECT COUNT(*)
+                    FROM cart c
+                    WHERE c.`{$cartArticleColumn}` = ?
+                ), 0)
+                AS available_qty";
+
+    $stmt = $mysqli->prepare($sql);
+    if ($stmt === false) {
+        $mysqli->close();
+        return 0;
+    }
+
+    $stmt->bind_param("ii", $articleId, $articleId);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    $row = $result ? $result->fetch_assoc() : null;
+    $availableQty = intval($row['available_qty'] ?? 0);
+
+    $stmt->close();
+    $mysqli->close();
+
+    return max(0, $availableQty);
+}
+
 function getCartQuantityForArticle($userId, $articleId): int {
     $mysqli = dbConnect();
         $userColumn = getCartUserColumn($mysqli);
