@@ -1,45 +1,46 @@
 <?php
+require_once __DIR__ . '/../Modele/userModele.php';
 
-
-function auth_register() : void
-{
-    $message = $_SESSION['error'] ?? '';
-    unset($_SESSION['error']);
-
-    require_once __DIR__ . '/../Vue/auth/Register.php';
-}
-
-function auth_logout() : void
-{
-    session_destroy();
-    header('Location: /php_exam/groupe6__projet_php/login');
-    exit;
-}
-
-function auth_login() : void
-{
-    if (isset($_SESSION['user_id'])) {
-        header('Location: /php_exam/groupe6__projet_php/home');
-        exit;
+function connection(){
+    if (session_status() !== PHP_SESSION_ACTIVE) {
+        session_start();
     }
 
-    $message = $_SESSION['error'] ?? '';
-    unset($_SESSION['error']);
-
-    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-        $username = trim($_POST['username'] ?? '');
-        $password = $_POST['password'] ?? '';
-
-        if ($username === '' || $password === '') {
-            $_SESSION['error'] = "Veuillez remplir tous les champs.";
-            header('Location: /php_exam/groupe6__projet_php/login');
-            exit;
-        }
-
-        $_SESSION['error'] = "Authentification DB non implémentée dans ce contrôleur.";
-        header('Location: /php_exam/groupe6__projet_php/login');
-        exit;
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+        return null;
     }
 
-    require_once __DIR__ . '/../Vue/auth/Login.php';
+    $username = trim($_POST['username'] ?? '');
+    $password = trim($_POST['password'] ?? '');
+
+    return VerifyIdentifiant($username, $password);
+    
+}
+
+
+
+function register(){
+    if (session_status() !== PHP_SESSION_ACTIVE) {
+        session_start();
+    }
+
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+        return null;
+    }
+
+    $username = trim($_POST['username'] ?? '');
+    $mail = trim($_POST['mail'] ?? '');
+    $passwordRaw = $_POST['password'] ?? '';
+    $passwordConfirm = $_POST['password_confirm'] ?? '';
+    $password = password_hash($passwordRaw, PASSWORD_BCRYPT);
+
+    if ($username === '' || $mail === '' || $passwordRaw === '' || $passwordConfirm === '') {
+        return "Merci de remplir tous les champs.";
+    }
+
+    if ($passwordRaw !== $passwordConfirm) {
+        return "Les deux mots de passe ne correspondent pas.";
+    }
+
+    return registerIdentifiant($username, $mail, $password);
 }

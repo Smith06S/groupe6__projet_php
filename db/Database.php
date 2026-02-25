@@ -1,6 +1,16 @@
 <?php
-$mysqli = new mysqli("localhost", "root", "", "php_exam_db");
 
-if ($mysqli->connect_error) {
-    die("Erreur de connexion : " . $mysqli->connect_error);
+function dbConnect() {
+    $host = "localhost";
+    $user = "root";
+    $pass = ""; 
+    $dbname = "php_exam_db";
+
+    $mysqli = new mysqli($host, $user, $pass, $dbname);
+
+    if ($mysqli->connect_error) {
+        die("Connection failed: " . $mysqli->connect_error);
+    }
+
+    return $mysqli;
 }
