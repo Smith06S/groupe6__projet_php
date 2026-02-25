@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/../../Controleur/productControleur.php';
 $articles = showProductsHome();
+$searchTerm = trim($_GET['search'] ?? '');
 
 if (session_status() !== PHP_SESSION_ACTIVE) {
     session_start();
@@ -19,6 +20,21 @@ if ($connectedUserId > 0) {
 <body>
 
 <h1>Liste des articles</h1>
+
+<form method="GET" action="">
+    <label for="search">Rechercher un article :</label>
+    <input
+        type="text"
+        id="search"
+        name="search"
+        value="<?= htmlspecialchars($searchTerm) ?>"
+        placeholder="Nom ou description"
+    >
+    <button type="submit">Rechercher</button>
+    <?php if ($searchTerm !== '') : ?>
+        <a href="/php_exam/groupe6__projet_php/Vue/products/Home.php">Réinitialiser</a>
+    <?php endif; ?>
+</form>
 
 <?php if ($isAdminUser) : ?>
     <p>
@@ -48,7 +64,9 @@ if ($connectedUserId > 0) {
         </div>
     <?php endforeach; ?>
 <?php else: ?>
-    <p>Aucun article trouvé.</p>
+    <p>
+        <?= $searchTerm !== '' ? 'Aucun article trouvé pour votre recherche.' : 'Aucun article trouvé.' ?>
+    </p>
 <?php endif; ?>
 
 </body>

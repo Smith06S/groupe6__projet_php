@@ -19,6 +19,38 @@ function getAllArticlesOrderedByDate() {
 	return $articles;
 }
 
+function searchArticlesByTermOrderedByDate($searchTerm) {
+    $mysqli = dbConnect();
+    $articles = [];
+
+    $sql = "SELECT * FROM article
+            WHERE nom LIKE ? OR description LIKE ?
+            ORDER BY date_publication DESC";
+
+    $stmt = $mysqli->prepare($sql);
+    if ($stmt === false) {
+        $mysqli->close();
+        return $articles;
+    }
+
+    $likeTerm = '%' . $searchTerm . '%';
+    $stmt->bind_param('ss', $likeTerm, $likeTerm);
+    $stmt->execute();
+    $result = $stmt->get_result();
+
+    if ($result) {
+        while ($article = $result->fetch_assoc()) {
+            $articles[] = $article;
+        }
+        $result->free();
+    }
+
+    $stmt->close();
+    $mysqli->close();
+
+    return $articles;
+}
+
 function getStockQuantityColumn(mysqli $mysqli): ?string {
     $result = $mysqli->query("SHOW COLUMNS FROM stock");
     if (!$result) {

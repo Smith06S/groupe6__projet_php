@@ -3,7 +3,14 @@ require_once __DIR__ . '/../Modele/articleModele.php';
 require_once __DIR__ . '/../Modele/userModele.php';
 
 function showProductsHome() {
-	$articles = getAllArticlesOrderedByDate();
+    $searchTerm = trim($_GET['search'] ?? '');
+
+    if ($searchTerm !== '') {
+        $articles = searchArticlesByTermOrderedByDate($searchTerm);
+    } else {
+	    $articles = getAllArticlesOrderedByDate();
+    }
+
     if ($articles === false) {
         die("Erreur lors de la récupération des articles.");
     }
